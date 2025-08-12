@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>스포츠 FAQ 관리 시스템</title>
+  <style>
+    :root { --bg:#0b0c10; --panel:#151a21; --muted:#8b98a5; --text:#e6edf3; --accent:#6ea8fe; --ok:#40c057; --bad:#ff6b6b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, sans-serif; background:var(--bg); color:var(--text); }
+    header { padding:20px; border-bottom:1px solid #1f2730; display:flex; gap:12px; align-items:center; justify-content:space-between; }
+    header h1 { font-size:18px; margin:0; }
+    .wrap { max-width:1100px; margin:24px auto; padding:0 16px 64px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+    .card { background:var(--panel); border:1px solid #1f2730; border-radius:16px; padding:16px; box-shadow: 0 2px 20px rgba(0,0,0,.2); }
+    .card h2 { margin:0 0 12px; font-size:16px; }
+    label { display:block; font-size:12px; color:var(--muted); margin:10px 0 6px; }
+    input[type="text"], textarea, select { width:100%; padding:10px 12px; border-radius:10px; border:1px solid #2a3340; background:#0f1318; color:var(--text); outline:none; }
+    textarea { min-height:110px; resize:vertical; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .btn { appearance:none; border:none; border-radius:12px; padding:10px 14px; background:#1a2230; color:var(--text); cursor:pointer; }
+    .btn:hover { filter:brightness(1.1); }
+    .btn.primary { background:var(--accent); color:#071019; font-weight:600; }
+    .btn.ok { background:var(--ok); color:#04120a; font-weight:600; }
+    .btn.bad { background:var(--bad); color:#1b0404; }
+    .list { margin-top:12px; display:grid; gap:10px; }
+    .item { border:1px solid #263041; border-radius:12px; padding:12px; background:#0f1318; display:grid; gap:6px; }
+    .item .meta { font-size:12px; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+    .item .q { font-weight:600; }
+    .tools { display:flex; gap:8px; justify-content:flex-end; }
+    .pill { padding:2px 8px; border-radius:999px; background:#1a2230; font-size:12px; color:#9fb1c6; }
+    .footer { margin-top:16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .status { font-size:12px; color:var(--muted); }
+    .danger { color:var(--bad); }
+    .oktxt { color:var(--ok); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .sport-selector { display:flex; gap:8px; margin-bottom:16px; }
+    .sport-btn { padding:8px 16px; border-radius:8px; background:#1a2230; border:1px solid #2a3340; color:var(--text); cursor:pointer; }
+    .sport-btn.active { background:var(--accent); color:#071019; border-color:var(--accent); }
+    .api-status { padding:8px 12px; border-radius:8px; background:#1a2230; border:1px solid #2a3340; font-size:12px; }
+    .api-status.connected { background:#0f2e1a; border-color:var(--ok); color:var(--ok); }
+    .api-status.disconnected { background:#2e1a1a; border-color:var(--bad); color:var(--bad); }
+    @media (max-width: 920px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>스포츠 FAQ 관리 시스템</h1>
+    <div class="row">
+      <div class="api-status" id="apiStatus">API 연결 확인 중...</div>
+      <button class="btn" id="importBtn">가져오기(JSON)</button>
+      <button class="btn" id="exportBtn">내보내기(JSON)</button>
+      <button class="btn" id="copyBtn">클립보드 복사</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="sport-selector">
+      <button class="sport-btn active" data-sport="baseball">야구</button>
+      <button class="sport-btn" data-sport="football">축구</button>
+      <button class="sport-btn" data-sport="basketball">농구</button>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>FAQ 엔트리 추가</h2>
+        <div class="row">
+          <div style="flex:1">
+            <label>카테고리</label>
+            <input type="text" id="category" placeholder="예: 규칙, 선수, 경기" />
+          </div>
+          <div style="width:180px">
+            <label>커스텀 ID (선택)</label>
+            <input type="text" id="customId" placeholder="비워두면 자동" />
+          </div>
+        </div>
+        <label>메인 질문</label>
+        <input type="text" id="question" placeholder="메인 질문을 입력하세요" />
+
+        <label>추가 질문들 (쉼표로 구분, 선택사항)</label>
+        <textarea id="questions" placeholder="예: 개별로 변경 가능한가요?, 번호 위치를 바꿀 수 있나요?, 개별 변경 가능한가요?" style="min-height:80px;"></textarea>
+
+        <label>답변</label>
+        <textarea id="answer" placeholder="답변을 입력하세요"></textarea>
+
+        <label>태그 (쉼표로 구분)</label>
+        <input type="text" id="tags" placeholder="예: 규칙, 오프사이드, 파울" />
+
+        <label>이미지 URL (쉼표로 구분, 선택사항)</label>
+        <input type="text" id="imageUrls" placeholder="예: https://s3.amazonaws.com/bucket/image1.jpg, https://s3.amazonaws.com/bucket/image2.jpg" />
+
+        <div class="row" style="margin-top:10px; justify-content:space-between;">
+          <div class="row">
+            <label style="margin:0">신뢰도 임계값</label>
+            <input type="text" id="threshold" placeholder="예: 0.75" style="width:90px" />
+          </div>
+          <div>
+            <button class="btn primary" id="addBtn">엔트리 추가</button>
+          </div>
+        </div>
+        <div class="status" id="formStatus"></div>
+      </section>
+
+      <section class="card">
+        <h2>FAQ 엔트리 목록</h2>
+        <div class="row" style="margin-bottom:8px; gap:8px;">
+          <input type="text" id="search" placeholder="질문/답변/태그 검색" />
+          <select id="filterCat" aria-label="카테고리 필터" style="max-width:220px">
+            <option value="">전체 카테고리</option>
+          </select>
+        </div>
+        <div class="list" id="list"></div>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>JSON 미리보기</h2>
+      <pre id="preview" class="mono" style="white-space:pre-wrap; word-break:break-word; background:#0b0f14; padding:12px; border-radius:12px; border:1px solid #263041; max-height:360px; overflow:auto;"></pre>
+             <div class="footer">
+         <span class="status">스키마: [id:number, category:string, question:string, questions:string[], answer:string, tags:string[], threshold?:number, image_urls?:string[]]</span>
+       </div>
+    </section>
+  </div>
+
+  <input type="file" id="fileInput" accept="application/json" hidden />
+
+  <script>
+    // --- State ---
+    /** @type {Array<{id:number, category:string, question:string, answer:string, tags:string[], threshold?:number}>} */
+    let data = [];
+    let nextId = 1;
+    let currentSport = 'baseball';
+    let apiBaseUrl = 'http://localhost:8000'; // API 기본 URL
+
+    // --- DOM helpers ---
+    const $ = (q) => document.querySelector(q);
+    const form = { cat: $('#category'), id: $('#customId'), q: $('#question'), questions: $('#questions'), a: $('#answer'), tags: $('#tags'), th: $('#threshold'), imageUrls: $('#imageUrls') };
+    const listEl = $('#list');
+    const previewEl = $('#preview');
+    const statusEl = $('#formStatus');
+    const filterCat = $('#filterCat');
+    const apiStatusEl = $('#apiStatus');
+
+    function toast(el, msg, ok=false){ el.textContent = msg; el.style.color = ok ? 'var(--ok)' : 'var(--bad)'; setTimeout(()=>{ el.textContent = ''; }, 1800); }
+
+    function toTags(s){ return (s||'').split(',').map(x=>x.trim()).filter(Boolean); }
+
+    function validate(entry){
+      if(!entry.question || !entry.answer){ return '질문/답변은 필수입니다.'; }
+      if(typeof entry.category !== 'string'){ return '카테고리는 문자열이어야 합니다.'; }
+      if(entry.threshold !== undefined && isNaN(entry.threshold)){ return '임계값은 숫자여야 합니다.'; }
+      return null;
+    }
+
+    // API 연결 상태 확인
+    async function checkApiConnection() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/faq/baseball`);
+        if (response.ok) {
+          apiStatusEl.textContent = 'API 연결됨';
+          apiStatusEl.className = 'api-status connected';
+          return true;
+        } else {
+          apiStatusEl.textContent = 'API 응답 오류';
+          apiStatusEl.className = 'api-status disconnected';
+          return false;
+        }
+      } catch (e) {
+        apiStatusEl.textContent = 'API 연결 안됨';
+        apiStatusEl.className = 'api-status disconnected';
+        console.error('API 연결 오류:', e);
+        return false;
+      }
+    }
+
+    // 스포츠 변경
+    async function changeSport(sport) {
+      currentSport = sport;
+      
+      // 스포츠 버튼 활성화 상태 변경
+      document.querySelectorAll('.sport-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-sport="${sport}"]`).classList.add('active');
+      
+      // API에서 FAQ 데이터 로드
+      await loadFaqFromApi();
+    }
+
+    // API에서 FAQ 데이터 로드
+    async function loadFaqFromApi() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/faq/${currentSport}`);
+        if (response.ok) {
+          const result = await response.json();
+          data = result.faq_list || [];
+          nextId = data.reduce((m, d) => Math.max(m, d.id), 0) + 1;
+          render();
+          toast(statusEl, `${currentSport} FAQ 로드 완료: ${data.length}개 항목`, true);
+        } else {
+          toast(statusEl, 'API에서 FAQ 로드 실패');
+        }
+      } catch (e) {
+        toast(statusEl, 'API 연결 오류');
+        console.error('API 로드 오류:', e);
+      }
+    }
+
+    // API에 FAQ 데이터 저장
+    async function saveFaqToApi() {
+      try {
+        const response = await fetch(`${apiBaseUrl}/faq/${currentSport}/import`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ faq_data: data })
+        });
+        
+        if (response.ok) {
+          toast(statusEl, 'API에 FAQ 저장 완료', true);
+          return true;
+        } else {
+          toast(statusEl, 'API에 FAQ 저장 실패');
+          return false;
+        }
+      } catch (e) {
+        toast(statusEl, 'API 저장 오류');
+        console.error('API 저장 오류:', e);
+        return false;
+      }
+    }
+
+    function rebuildCatFilter(){
+      const cats = Array.from(new Set(data.map(d=>d.category).filter(Boolean))).sort();
+      const current = filterCat.value;
+      filterCat.innerHTML = '<option value="">전체 카테고리</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+      filterCat.value = current || '';
+    }
+
+    function render(){
+      const q = ($('#search').value||'').toLowerCase();
+      const cat = filterCat.value;
+      const items = data.filter(d=>{
+        // 다중 질문도 검색에 포함
+        const allQuestions = d.questions ? d.questions.join(' ') : d.question;
+        const hay = [allQuestions, d.answer, d.tags.join(' '), d.category].join(' ').toLowerCase();
+        const okQ = !q || hay.includes(q);
+        const okC = !cat || d.category === cat;
+        return okQ && okC;
+      });
+      listEl.innerHTML = items.map(d=>{
+        const tags = d.tags.map(t=>`<span class="pill">#${t}</span>`).join(' ');
+        const imageUrls = d.image_urls ? d.image_urls.map(url=>`<span class="pill">🖼️${url.substring(0,20)}...</span>`).join(' ') : '';
+                 // 다중 질문 표시
+         const questionDisplay = d.questions && d.questions.length > 1 
+           ? `<div class="q">Q. ${escapeHtml(d.question)}</div>
+              <div class="meta" style="color:var(--accent); font-size:11px;">추가 질문: ${d.questions.slice(1).map(q => escapeHtml(q)).join(' | ')}</div>`
+           : `<div class="q">Q. ${escapeHtml(d.question)}</div>`;
+         
+         return `<div class="item" data-id="${d.id}">
+           <div class="meta">ID:${d.id} · <span class="pill">${d.category||'미지정'}</span> ${d.threshold!==undefined?`· 임계값:${d.threshold}`:''}</div>
+           ${questionDisplay}
+           <div class="a">A. ${escapeHtml(d.answer)}</div>
+           <div class="meta">${tags} ${imageUrls}</div>
+          <div class="tools">
+            <button class="btn" data-act="edit">수정</button>
+            <button class="btn bad" data-act="del">삭제</button>
+            <button class="btn" data-act="dup">복제</button>
+            <button class="btn" data-act="up">위로</button>
+            <button class="btn" data-act="down">아래로</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      previewEl.textContent = JSON.stringify(data, null, 2);
+      rebuildCatFilter();
+    }
+
+    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
+
+    async function addOrUpdate(){
+      // 추가 질문들 처리
+      const additionalQuestions = toTags(form.questions.value);
+      const allQuestions = [form.q.value.trim()].concat(additionalQuestions).filter(Boolean);
+      
+      const entry = {
+        id: form.id.value? Number(form.id.value) : nextId,
+        category: (form.cat.value||'').trim(),
+        question: (form.q.value||'').trim(),
+        questions: allQuestions,  // 다중 질문 추가
+        answer: (form.a.value||'').trim(),
+        tags: toTags(form.tags.value),
+        threshold: form.th.value? Number(form.th.value) : undefined,
+        image_urls: toTags(form.imageUrls.value),
+      };
+      const err = validate(entry);
+      if(err){ toast(statusEl, err); return; }
+
+      const idx = data.findIndex(d=>d.id===entry.id);
+      if(idx>=0){ 
+        data[idx]=entry; 
+        toast(statusEl, '수정되었습니다.', true); 
+      }
+      else { 
+        data.push(entry); 
+        nextId = Math.max(nextId, entry.id+1); 
+        toast(statusEl, '추가되었습니다.', true); 
+      }
+      
+      // API에 저장
+      await saveFaqToApi();
+      
+      clearForm();
+      render();
+    }
+
+    function clearForm(){ 
+      form.id.value=''; 
+      form.cat.value=''; 
+      form.q.value=''; 
+      form.questions.value=''; 
+      form.a.value=''; 
+      form.tags.value=''; 
+      form.th.value=''; 
+      form.imageUrls.value=''; 
+    }
+
+    // --- Events ---
+    $('#addBtn').addEventListener('click', addOrUpdate);
+    
+    // 스포츠 선택 이벤트
+    document.querySelectorAll('.sport-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        changeSport(btn.dataset.sport);
+      });
+    });
+    
+    listEl.addEventListener('click', (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+      const item = e.target.closest('.item'); if(!item) return;
+      const id = Number(item.dataset.id);
+      const idx = data.findIndex(d=>d.id===id); if(idx<0) return;
+      const act = btn.dataset.act;
+      if(act==='del'){ 
+        data.splice(idx,1); 
+        saveFaqToApi();
+        render(); 
+        return; 
+      }
+      if(act==='dup'){ 
+        const copy = {...data[idx], id: nextId++}; 
+        data.splice(idx+1,0,copy); 
+        saveFaqToApi();
+        render(); 
+        return; 
+      }
+      if(act==='up' && idx>0){ 
+        const tmp=data[idx-1]; 
+        data[idx-1]=data[idx]; 
+        data[idx]=tmp; 
+        saveFaqToApi();
+        render(); 
+        return; 
+      }
+      if(act==='down' && idx<data.length-1){ 
+        const tmp=data[idx+1]; 
+        data[idx+1]=data[idx]; 
+        data[idx]=tmp; 
+        saveFaqToApi();
+        render(); 
+        return; 
+      }
+      if(act==='edit'){
+        const d = data[idx];
+        form.id.value = d.id; 
+        form.cat.value = d.category; 
+        form.q.value = d.question; 
+        // 추가 질문들 처리 (메인 질문 제외)
+        const additionalQuestions = d.questions ? d.questions.filter(q => q !== d.question) : [];
+        form.questions.value = additionalQuestions.join(', ');
+        form.a.value = d.answer; 
+        form.tags.value = d.tags.join(', '); 
+        form.th.value = d.threshold ?? ''; 
+        form.imageUrls.value = d.image_urls ? d.image_urls.join(', ') : '';
+        window.scrollTo({top:0, behavior:'smooth'});
+      }
+    });
+
+    $('#search').addEventListener('input', render);
+    filterCat.addEventListener('change', render);
+
+    // Import / Export
+    $('#importBtn').addEventListener('click', ()=> $('#fileInput').click());
+    $('#fileInput').addEventListener('change', async (ev)=>{
+      const f = ev.target.files[0]; if(!f) return;
+      try {
+        const text = await f.text();
+        const arr = JSON.parse(text);
+        if(!Array.isArray(arr)) throw new Error('배열 JSON이어야 합니다.');
+        // schema check (light)
+        for(const o of arr){
+          if(typeof o.id!=='number' || typeof o.question!=='string' || typeof o.answer!=='string'){
+            throw new Error('스키마 불일치: id:number, question:string, answer:string');
+          }
+          if(o.tags && !Array.isArray(o.tags)) throw new Error('tags는 문자열 배열이어야 합니다.');
+        }
+                 data = arr.map(o=>({ 
+           ...o, 
+           tags: (o.tags||[]).map(String),
+           questions: o.questions || [o.question] // 기존 데이터 호환성
+         }));
+        nextId = data.reduce((m, d)=> Math.max(m, d.id), 0) + 1;
+        
+        // API에 저장
+        await saveFaqToApi();
+        
+        render();
+      } catch(err){ alert('가져오기 실패: ' + err.message); }
+      ev.target.value='';
+    });
+
+    $('#exportBtn').addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${currentSport}_faq_entries_${new Date().toISOString().slice(0,10)}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+
+    $('#copyBtn').addEventListener('click', async ()=>{
+      try { await navigator.clipboard.writeText(JSON.stringify(data, null, 2)); alert('클립보드에 복사했습니다.'); } catch { alert('복사 실패: 브라우저 권한을 확인하세요.'); }
+    });
+
+    // 초기화
+    checkApiConnection().then(connected => {
+      if (connected) {
+        loadFaqFromApi();
+      } else {
+        // API 연결 안됨 - 로컬 데이터로 시작
+        data = [
+          { id: 1, category: '규칙', question: '오프사이드란 무엇인가요?', answer: '오프사이드는 공격 선수가 상대팀 선수보다 골대에 가까이 있을 때 발생하는 반칙입니다.', tags:['규칙','오프사이드','반칙'] },
+          { id: 2, category: '선수', question: '최고 득점 선수는 누구인가요?', answer: '현재 최고 득점 선수는 [선수명]입니다.', tags:['선수','득점','기록'] }
+        ];
+        nextId = 3;
+        render();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+[
+  {
+    "id": 5,
+    "category": "주문",
+    "question": "キーパーユニホームも作成可能ですか？",
+    "answer": "GK(ゴールキーパー)ユニフォームも制作可能でございます。",
+    "tags": [
+      "GK",
+      "ユニフォーム"
+    ],
+    "threshold": 0.7
+  },
+  {
+    "id": 6,
+    "category": "제작",
+    "question": "ネックスタイルの種類",
+    "questions": [
+      "ネックスタイルの種類"
+    ],
+    "answer": "【ユニフォームネックスタイル】\nラウンドネック5種\nVネック6種\n襟付き3種\nチームでご希望のスタイルを選択可能",
+    "tags": [
+      "スタイル",
+      "ネック"
+    ],
+    "threshold": 0.7,
+    "image_urls": [
+      "https://linechatbot-img.s3.ap-northeast-1.amazonaws.com/soccer-line-img/uniform_neck_style_1.png",
+      "https://linechatbot-img.s3.ap-northeast-1.amazonaws.com/soccer-line-img/uniform_neck_style_2.png",
+      "https://linechatbot-img.s3.ap-northeast-1.amazonaws.com/soccer-line-img/uniform_neck_style_3.png"
+    ]
+  },
+  {
+    "id": 7,
+    "category": "디자인",
+    "question": "番号の入れる場所を、個々で変更は可能でしょうか",
+    "questions": [
+      "番号の入れる場所を、個々で変更は可能でしょうか",
+      "番号の入れる場所を、個別で変更したい"
+    ],
+    "answer": "不可\n位置はチーム統一となります。",
+    "tags": [
+      "番号",
+      "場所",
+      "変更"
+    ],
+    "threshold": 0.7,
+    "image_urls": []
+  }
+]
