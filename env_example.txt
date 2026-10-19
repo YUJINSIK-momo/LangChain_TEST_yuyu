@@ -1,0 +1,14 @@
+# 복사해서 .env 로 쓰고, 실제 값은 .env 에만 넣는다 (.env 는 저장소에 올리지 않는다)
+GOOGLE_API_KEY=your_google_api_key
+
+LINE_CHANNEL_ACCESS_TOKEN_BASEBALL=your_line_channel_access_token
+LINE_CHANNEL_SECRET_BASEBALL=your_line_channel_secret
+
+LINE_CHANNEL_ACCESS_TOKEN_FOOTBALL=your_line_channel_access_token
+LINE_CHANNEL_SECRET_FOOTBALL=your_line_channel_secret
+
+LINE_CHANNEL_ACCESS_TOKEN_BASKETBALL=your_line_channel_access_token
+LINE_CHANNEL_SECRET_BASKETBALL=your_line_channel_secret
+
+DATABASE_URL=your_database_url
+LOG_LEVEL=INFO

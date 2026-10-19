@@ -1,0 +1,12 @@
+# 비밀값 · 실행 기록은 저장소에 두지 않는다
+.env
+.env.*
+*.log
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
